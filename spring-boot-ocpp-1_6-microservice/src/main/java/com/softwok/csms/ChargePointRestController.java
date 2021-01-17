@@ -1,4 +1,4 @@
-package com.github.richygreat.csms;
+package com.softwok.csms;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

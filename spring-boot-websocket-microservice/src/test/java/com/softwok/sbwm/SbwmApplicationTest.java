@@ -1,8 +1,8 @@
-package com.github.richygreat.sbam;
+package com.softwok.sbwm;
 
 import org.junit.jupiter.api.Test;
 
-class SbamApplicationTest {
+class SbwmApplicationTest {
     @Test
     void test() {
     }

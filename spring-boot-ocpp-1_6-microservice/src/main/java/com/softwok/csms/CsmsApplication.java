@@ -1,11 +1,11 @@
-package com.github.richygreat.sbam;
+package com.softwok.csms;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SbamApplication {
+public class CsmsApplication {
     public static void main(String[] args) {
-        SpringApplication.run(SbamApplication.class, args);
+        SpringApplication.run(CsmsApplication.class, args);
     }
 }

@@ -1,4 +1,4 @@
-package com.github.richygreat.sbam.config;
+package com.softwok.sbam.config;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -6,7 +6,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.github.richygreat.sbam.properties.CloudAwsCredentialsProperties;
+import com.softwok.sbam.properties.CloudAwsCredentialsProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.aws.core.region.StaticRegionProvider;
 import org.springframework.context.annotation.Bean;

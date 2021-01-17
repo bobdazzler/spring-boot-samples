@@ -1,4 +1,4 @@
-package com.github.richygreat.csms;
+package com.softwok.csms;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,7 @@ public class CsmsRestController {
     @GetMapping("/clear-cache-requested")
     public ResponseEntity<Void> clearCacheRequested() {
         try {
-            csmsServer.sendClearCacheRequest(UUID.randomUUID().toString());
+            csmsServer.sendClearCacheRequest(UUID.randomUUID().toString(), "cp101");
         } catch (Exception e) {
             log.error("startTransaction failed", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

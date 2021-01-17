@@ -1,4 +1,4 @@
-package com.github.richygreat.sbam.properties;
+package com.softwok.sbam.properties;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

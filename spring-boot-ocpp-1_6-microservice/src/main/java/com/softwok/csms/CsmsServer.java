@@ -1,4 +1,4 @@
-package com.github.richygreat.csms;
+package com.softwok.csms;
 
 import eu.chargetime.ocpp.JSONServer;
 import eu.chargetime.ocpp.ServerEvents;
@@ -8,10 +8,21 @@ import eu.chargetime.ocpp.model.Confirmation;
 import eu.chargetime.ocpp.model.SessionInformation;
 import eu.chargetime.ocpp.model.core.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,13 +31,13 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class CsmsServer {
-    private static final String CHARGE_POINT_ID = "cp101";
-    private Map<String, String> deviceSessionMap = new HashMap<>();
+    private final Map<String, UUID> deviceSessionMap = new HashMap<>();
     private JSONServer server;
     private ServerCoreProfile core;
 
     @PostConstruct
-    public void started() {
+    public void started() throws KeyStoreException, IOException, UnrecoverableKeyException,
+            NoSuchAlgorithmException, KeyManagementException, CertificateException {
         if (server != null)
             return;
 
@@ -110,30 +121,46 @@ public class CsmsServer {
         });
 
         server = new JSONServer(core);
+
+        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+        File kf = new ClassPathResource("ocpp.jks").getFile();
+        ks.load(new FileInputStream(kf), "secret".toCharArray());
+
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(ks, "secret".toCharArray());
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        tmf.init(ks);
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+
+        server.enableWSS(sslContext);
         server.open("localhost", 8887, new ServerEvents() {
 
             @Override
             public void newSession(UUID sessionIndex, SessionInformation information) {
-                deviceSessionMap.put(CHARGE_POINT_ID, sessionIndex.toString());
+                String chargePointId = information.getIdentifier().replace("/", "");
+                deviceSessionMap.put(chargePointId, sessionIndex);
                 // sessionIndex is used to send messages.
-                log.info("New session " + sessionIndex + ": " + information.getIdentifier());
+                log.info("New session sessionIndex: {} chargePointId: {}", sessionIndex, chargePointId);
             }
 
             @Override
             public void lostSession(UUID sessionIndex) {
-                deviceSessionMap.remove(CHARGE_POINT_ID);
-                log.info("Session " + sessionIndex + " lost connection");
+                deviceSessionMap.entrySet().removeIf(entry -> sessionIndex.equals(entry.getValue()));
+                log.info("lostSession sessionIndex: {} lost connection", sessionIndex);
             }
         });
     }
 
     @PreDestroy
     public void destroy() {
+        log.info("destroy deviceSessionMap: {}", deviceSessionMap);
         deviceSessionMap.clear();
         server.close();
     }
 
-    public void sendClearCacheRequest(String requestId) throws Exception {
+    public void sendClearCacheRequest(String requestId, String chargePointId) throws Exception {
 
         // Use the feature profile to help create event
         ClearCacheRequest request = core.createClearCacheRequest();
@@ -141,7 +168,11 @@ public class CsmsServer {
         log.info("Request sent for requestId: {} request: {}", requestId, request.toString());
         // Server returns a promise which will be filled once it receives a confirmation.
         // Select the distination client with the sessionIndex integer.
-        server.send(UUID.fromString(deviceSessionMap.get(CHARGE_POINT_ID)), request)
+
+        UUID sessionId = deviceSessionMap.entrySet().stream().filter(entry -> chargePointId.equals(entry.getKey())).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND)).getValue();
+
+        server.send(sessionId, request)
                 .whenComplete((confirmation, e) -> this.publishConfirmationToTopic(confirmation, e, requestId));
     }
 
