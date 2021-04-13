@@ -1,0 +1,18 @@
+internal.lb.uri: http://localhost
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_OAUTH_CLIENT_ID}
+            client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET}
+  cloud:
+    gateway:
+      routes:
+        - id: product-microservice
+          uri: ${internal.lb.uri}:8081
+          predicates:
+            - Path=/product-microservice/**
+          filters:
+            - RewritePath=/product-microservice/(?<path>.*), /$\{path}
